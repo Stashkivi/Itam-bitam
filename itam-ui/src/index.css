@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── React Flow overrides ─────────────────────────────────────────────────── */
+
+.react-flow__renderer {
+  background: transparent;
+}
+
+.react-flow__controls {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.react-flow__controls-button:hover {
+  background: #263348;
+  color: #f1f5f9;
+}
+
+.react-flow__minimap {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* ── Pulsing anomaly ring ─────────────────────────────────────────────────── */
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0   var(--ring-color, rgba(239,68,68,0.8)); }
+  70%  { box-shadow: 0 0 0 12px transparent; }
+  100% { box-shadow: 0 0 0 0   transparent; }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.8s ease-in-out infinite;
+}
+
+/* ── Custom scrollbar ─────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Prevent react-flow default white background flash */
+.react-flow {
+  background: #0f172a;
+}

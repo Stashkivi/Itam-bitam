@@ -1,0 +1,43 @@
+server:
+  addr: ":8443"
+  tls_cert_path: "/etc/itam-server/tls.crt"
+  tls_key_path:  "/etc/itam-server/tls.key"
+  read_timeout_sec:  30
+  write_timeout_sec: 30
+
+postgres:
+  dsn: "postgres://itam:changeme@localhost:5432/itam?sslmode=require"
+  max_conns: 50
+  min_conns: 5
+  migrations_dir: "migrations"
+
+graph:
+  uri:      "bolt://localhost:7687"   # Memgraph or Neo4j
+  username: "memgraph"
+  password: "changeme"
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  topic_scan_full:  "agent.scan.full"
+  topic_scan_diff:  "agent.scan.diff"
+  topic_heartbeat:  "agent.heartbeat"
+  topic_alert:      "agent.alert"
+
+redis:
+  addr:     "redis:6379"
+  password: ""
+  db:       0
+
+enrollment:
+  hmac_secret:    "CHANGE_ME_32_BYTES_MIN_RANDOM"   # base64 or raw
+  ca_cert_path:   "/var/lib/itam-server/ca.crt"     # auto-generated on first run
+  ca_key_path:    "/var/lib/itam-server/ca.key"
+  cert_ttl_days:  365
+
+jwt:
+  secret:           "CHANGE_ME_JWT_SECRET_32_BYTES"
+  access_ttl_min:   15
+  refresh_ttl_hour: 24
+
+data_dir: "/var/lib/itam-server"

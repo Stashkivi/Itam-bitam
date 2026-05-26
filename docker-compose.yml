@@ -1,0 +1,120 @@
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-itam}
+      POSTGRES_USER:     ${POSTGRES_USER:-itam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-itam}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Memgraph (Neo4j-compatible graph DB) ─────────────────────────────────────
+  memgraph:
+    image: memgraph/memgraph:2.17.0
+    restart: unless-stopped
+    command: ["--bolt-port=7687", "--log-level=WARNING"]
+    ports:
+      - "7687:7687"
+    volumes:
+      - mg_data:/var/lib/memgraph
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "7687"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Kafka (KRaft mode — no ZooKeeper) ───────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── ITAM Server ──────────────────────────────────────────────────────────────
+  itam-server:
+    build:
+      context: ./itam-server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:  { condition: service_healthy }
+      memgraph:  { condition: service_healthy }
+      kafka:     { condition: service_healthy }
+      redis:     { condition: service_healthy }
+    environment:
+      ITAM_POSTGRES_DSN:      postgres://${POSTGRES_USER:-itam}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-itam}?sslmode=disable
+      ITAM_GRAPH_URI:         bolt://memgraph:7687
+      ITAM_KAFKA_BROKERS:     kafka:9092
+      ITAM_REDIS_ADDR:        redis:6379
+      ITAM_JWT_SECRET:        ${JWT_SECRET:?set JWT_SECRET}
+      ITAM_ENROLLMENT_SECRET: ${ENROLLMENT_SECRET:?set ENROLLMENT_SECRET}
+      ITAM_LISTEN_ADDR:       :8443
+      ITAM_ADMIN_TOKEN:       ${ADMIN_TOKEN:?set ADMIN_TOKEN}
+    ports:
+      - "8443:8443"
+    volumes:
+      - ca_data:/data/ca
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8443/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── ITAM UI ──────────────────────────────────────────────────────────────────
+  itam-ui:
+    build:
+      context: ./itam-ui
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      itam-server: { condition: service_healthy }
+    ports:
+      - "80:80"
+
+volumes:
+  pg_data:
+  mg_data:
+  kafka_data:
+  redis_data:
+  ca_data:

@@ -1,0 +1,23 @@
+server:
+  base_url: "https://itam.corp.example.com"
+  enrollment_token: "PASTE_TOKEN_HERE"   # consumed on first run, then cleared
+  ca_cert_path: ""                        # path to server CA cert; empty = system CAs
+  tls_skip_verify: false                  # dev only — never true in production
+
+agent:
+  data_dir: ""              # default: /etc/itam-agent (Linux) or C:\ProgramData\ITAMAgent (Windows)
+  scan_cron: "0 2 * * *"   # 02:00 UTC daily; server overrides this after enrollment
+  log_level: "info"         # debug | info | warn | error
+  gogc: 50                  # GC aggressiveness; lower = more frequent, smaller GCs
+  mem_limit_mb: 15          # GOMEMLIMIT hard ceiling in MB
+
+cache:
+  max_pending_rows: 10000   # evict oldest rows beyond this limit
+  flush_batch_size: 50      # rows delivered per flush cycle
+  max_attempts: 5           # retries before moving to dead_letter
+
+siem:
+  wazuh_enabled: false
+  wazuh_alerts_path: "/var/ossec/logs/alerts/alerts.json"
+  elastic_enabled: false
+  elastic_api_addr: "https://localhost:8220"
