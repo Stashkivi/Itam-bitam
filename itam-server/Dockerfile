@@ -3,7 +3,9 @@ FROM golang:1.22-alpine AS builder
 WORKDIR /src
 RUN apk add --no-cache git ca-certificates
 
-COPY go.mod go.sum ./
+COPY go.mod ./
+# Генерируем go.sum если его нет
+RUN go mod tidy
 RUN go mod download
 
 COPY . .
